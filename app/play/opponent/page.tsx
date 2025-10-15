@@ -1,11 +1,16 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { AnimatePresence } from "framer-motion";
 import { ChevronLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
-import io, { Socket } from "socket.io-client";
-import TicTacToeGrid from "@/components/board";
+import io from "socket.io-client";
+import NameInputField from "@/components/playWithOpponent/nameInputField";
+import FindingOpponentField from "@/components/playWithOpponent/findingOpponentField";
+import OpponentNotFound from "@/components/playWithOpponent/notFound";
+import MatchedIntro from "@/components/playWithOpponent/matchedIntro";
+import GameField from "@/components/playWithOpponent/gameField";
+
 
 interface Player {
     id: string;
@@ -20,13 +25,13 @@ interface MatchData {
 
 const PlayWithOpponent = () => {
     const [name, setName] = useState("");
-    const [stage, setStage] = useState<"input" | "loading" | "notfound" | "game">("input");
+    const [stage, setStage] = useState<"input" | "loading" | "notfound" | "matched" | "game">("input");
     const [timer, setTimer] = useState(30);
     const [warning, setWarning] = useState("");
     const [opponent, setOpponent] = useState<Player | null>(null);
     const [room, setRoom] = useState("");
     const [playerSymbol, setPlayerSymbol] = useState<"X" | "O">("O");
-    const socketRef = useRef<Socket | null>(null);
+    const socketRef = useRef<ReturnType<typeof io> | null>(null);
     const router = useRouter();
 
     // Handle timer for finding opponent
@@ -35,6 +40,11 @@ const PlayWithOpponent = () => {
         if (stage === "loading" && timer > 0) {
             interval = setInterval(() => setTimer((prev) => prev - 1), 1000);
         } else if (timer === 0 && stage === "loading") {
+            // Disconnect after timeout
+            if (socketRef.current) {
+                socketRef.current.disconnect();
+                socketRef.current = null;
+            }
             setStage("notfound");
         }
         return () => clearInterval(interval);
@@ -42,11 +52,15 @@ const PlayWithOpponent = () => {
 
     // Connect socket only when starting to find match
     const connectSocket = (playerName: string) => {
-        if (socketRef.current) return; // already connected
+        if (socketRef.current) return;
 
-        const socket = io("http://192.168.43.125:4000", {
+        if (!process.env.NEXT_PUBLIC_SOCKET_SERVER_URL) {
+            throw new Error("NEXT_PUBLIC_SOCKET_SERVER_URL is not defined in .env.local");
+        }
+
+        const socket = io(process.env.NEXT_PUBLIC_SOCKET_SERVER_URL, {
             transports: ["websocket"],
-            reconnection: false, // prevent auto-reconnect on refresh
+            reconnection: false,
         });
 
         socketRef.current = socket;
@@ -63,7 +77,19 @@ const PlayWithOpponent = () => {
             setPlayerSymbol(me.symbol);
             setOpponent(opponentPlayer);
             setRoom(room);
-            setStage("game");
+            setStage("matched");
+
+            // Wait 5 seconds before entering the game
+            setTimeout(() => {
+                setStage("game");
+            }, 5000);
+        });
+
+
+        // Listen for opponent disconnect
+        socket.on("opponentDisconnected", () => {
+            alert("Your opponent left the game.");
+            router.push("/");
         });
 
         socket.on("disconnect", () => {
@@ -72,8 +98,8 @@ const PlayWithOpponent = () => {
     };
 
     const handleContinue = () => {
-        if (!name.trim()) {
-            setWarning("Please enter your name.");
+        if (!name.trim() || name.trim().length < 3 || name.trim().length > 10) {
+            setWarning("Name must be between 3 and 10 characters.");
             return;
         }
 
@@ -120,126 +146,54 @@ const PlayWithOpponent = () => {
                 className="absolute top-6 left-6 flex items-center gap-2 bg-neutral-800 hover:bg-neutral-700 px-4 py-2 rounded-2xl shadow-lg transition-all"
             >
                 <ChevronLeft size={20} />
-                <span className="font-medium">Back</span>
+                <span className="font-medium">
+                    {
+                        stage === "game" ? "Exit" : "Home"
+                    }
+                </span>
             </button>
 
             <AnimatePresence mode="wait">
                 {stage === "input" && (
-                    <motion.div
-                        key="input"
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -20 }}
-                        className="bg-neutral-800 rounded-3xl p-10 w-full max-w-md shadow-xl flex flex-col gap-4 items-center"
-                    >
-                        <h1 className="text-2xl font-bold text-center">Enter Your Name</h1>
-                        <input
-                            type="text"
-                            value={name}
-                            onChange={(e) => setName(e.target.value)}
-                            placeholder="Nickname..."
-                            className="w-full px-4 py-3 rounded-xl text-white border border-orange-400 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500"
-                        />
-                        {warning && <p className="text-red-500 text-sm font-medium">{warning}</p>}
-                        <button
-                            onClick={handleContinue}
-                            className="w-full bg-orange-500 hover:bg-orange-600 py-3 rounded-2xl font-semibold transition-all"
-                        >
-                            Continue
-                        </button>
-                    </motion.div>
+                    <NameInputField
+                        name={name}
+                        setName={setName}
+                        warning={warning}
+                        handleContinue={handleContinue}
+                    />
                 )}
 
                 {stage === "loading" && (
-                    <motion.div
-                        key="loading"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="bg-neutral-800 rounded-3xl p-10 w-full max-w-md shadow-xl flex flex-col items-center gap-6"
-                    >
-                        <h1 className="text-2xl font-bold text-center">Finding a Random Player</h1>
-                        <p className="text-gray-300 text-center">
-                            It usually takes <span className="font-semibold">{timer}</span> seconds
-                        </p>
-
-                        {/* Loading Dots */}
-                        <div className="flex gap-2 mt-4">
-                            {[0, 1, 2].map((i) => (
-                                <motion.div
-                                    key={i}
-                                    className="w-4 h-4 bg-orange-500 rounded-full"
-                                    animate={{
-                                        scale: [1, 1.6, 1],
-                                        opacity: [1, 0.5, 1],
-                                    }}
-                                    transition={{
-                                        duration: 1.2,
-                                        repeat: Infinity,
-                                        delay: i * 0.2,
-                                    }}
-                                />
-                            ))}
-                        </div>
-
-                        <button
-                            onClick={handleCancel}
-                            className="mt-6 px-6 py-2 border border-gray-600 rounded-2xl hover:bg-gray-700 transition"
-                        >
-                            Cancel
-                        </button>
-                    </motion.div>
+                    <FindingOpponentField
+                        timer={timer}
+                        handleCancel={handleCancel}
+                    />
                 )}
 
                 {stage === "notfound" && (
-                    <motion.div
-                        key="notfound"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="bg-neutral-800 rounded-3xl p-10 w-full max-w-md shadow-xl flex flex-col items-center gap-6"
-                    >
-                        <h1 className="text-2xl font-bold text-center text-red-400">No Player Found 😕</h1>
-                        <p className="text-gray-300 text-center">Please try again later.</p>
-                        <button
-                            onClick={handleCancel}
-                            className="mt-4 bg-orange-500 hover:bg-orange-600 px-6 py-2 rounded-2xl font-semibold transition"
-                        >
-                            Go Back
-                        </button>
-                    </motion.div>
+                    <OpponentNotFound
+                        handleRetry={handleContinue}
+                        handleCancel={handleCancel}
+                    />
                 )}
 
-                {stage === "game" && opponent && (
-                    <motion.div
-                        key="game"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="flex flex-col items-center gap-6"
-                    >
-                        <div className="flex gap-4 items-center">
-                            <div className="flex flex-col items-center">
-                                <div className="w-12 h-12 bg-orange-500 rounded-full flex items-center justify-center font-bold text-white">
-                                    {name[0].toUpperCase()}
-                                </div>
-                                <p className="text-sm mt-1">
-                                    {name} ({playerSymbol})
-                                </p>
-                            </div>
-                            <span className="text-gray-300">VS</span>
-                            <div className="flex flex-col items-center">
-                                <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center font-bold text-white">
-                                    {opponent.name[0].toUpperCase()}
-                                </div>
-                                <p className="text-sm mt-1">
-                                    {opponent.name} ({opponent.symbol})
-                                </p>
-                            </div>
-                        </div>
+                {stage === "matched" && opponent && (
+                    <MatchedIntro
+                        name={name}
+                        playerSymbol={playerSymbol}
+                        opponent={opponent}
+                    />
+                )}
 
-                        <TicTacToeGrid socket={socketRef.current!} playerSymbol={playerSymbol} room={room} />
-                    </motion.div>
+
+                {stage === "game" && opponent && (
+                    <GameField
+                        room={room}
+                        name={name}
+                        playerSymbol={playerSymbol}
+                        opponent={opponent}
+                        socketRef={socketRef}
+                    />
                 )}
             </AnimatePresence>
         </div>

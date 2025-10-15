@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { MotionDiv, MotionFooter, MotionH2, MotionHeader, MotionP } from "@/lib/motion";
 import { User, Users, Globe } from "lucide-react";
 import { useRouter } from "next/navigation";
 
@@ -10,40 +10,40 @@ export default function Home() {
   return (
     <div className="min-h-screen flex flex-col items-center justify-between bg-neutral-950 text-white">
       {/* ===== Header with Lila Logo ===== */}
-      <motion.header
+      <MotionHeader
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
         className="w-full bg-black flex flex-col items-center justify-center py-6 shadow-lg"
       >
         <img
-          src="https://lilagames.com/wp-content/uploads/2023/05/LILA-LOGO-1.png"
+          src="/lila-logo.png"
           alt="Lila Games Logo"
           className="w-32 md:w-40 object-contain"
         />
-        <motion.h2
+        <MotionH2
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.2 }}
           className="mt-2 text-lg md:text-xl font-semibold tracking-wide text-gray-300"
         >
           Tic Tac Toe
-        </motion.h2>
-      </motion.header>
+        </MotionH2>
+      </MotionHeader>
 
       {/* ===== Main Content ===== */}
       <main className="flex flex-col items-center justify-center flex-grow px-6 py-8 text-center">
-        <motion.p
+        <MotionP
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.3 }}
           className="text-gray-400 mb-10 max-w-md text-base md:text-lg"
         >
           Challenge your friends, test your strategy, or play against an online opponent.
-        </motion.p>
+        </MotionP>
 
         {/* Game Mode Buttons */}
-        <motion.div
+        <MotionDiv
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
@@ -69,18 +69,18 @@ export default function Home() {
           >
             <Globe size={20} /> Play with Opponent (Online)
           </button>
-        </motion.div>
+        </MotionDiv>
       </main>
 
       {/* ===== Footer ===== */}
-      <motion.footer
+      <MotionFooter
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.6 }}
         className="w-full text-center text-gray-500 text-sm py-4 border-t border-gray-800"
       >
         © {new Date().getFullYear()} Lila Tic Tac Toe • Built by Muhammad Adnan K
-      </motion.footer>
+      </MotionFooter>
     </div>
   );
 }

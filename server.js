@@ -8,6 +8,8 @@ app.use(cors());
 
 const server = http.createServer(app);
 
+const PORT = process.env.PORT || 4000;
+
 const io = new Server(server, {
     cors: {
         origin: "*",
@@ -51,9 +53,15 @@ io.on("connection", (socket) => {
     socket.on("disconnect", () => {
         console.log("Player disconnected:", socket.id);
         if (waitingPlayer?.id === socket.id) waitingPlayer = null;
+
+        // Notify opponent if in a room
+        const rooms = Array.from(socket.rooms).filter((r) => r !== socket.id);
+        rooms.forEach((room) => {
+            socket.to(room).emit("opponentDisconnected");
+        });
     });
 });
 
-server.listen(4000, () => {
-    console.log("✅ Socket.IO server running on http://localhost:4000");
+server.listen(PORT, () => {
+    console.log(`Socket.IO server running on ${PORT}`);
 });
