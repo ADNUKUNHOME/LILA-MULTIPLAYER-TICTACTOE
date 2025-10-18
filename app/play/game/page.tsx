@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Toaster, toast } from "react-hot-toast";
 import GameField from "@/components/playWithOpponent/gameField";
 import { useSocket } from "@/context/SocketContext";
+import MatchedIntro from "@/components/playWithOpponent/matchedIntro";
 
 interface Player {
     playerId: string;
@@ -18,7 +19,6 @@ interface GameOverData {
     winner?: Player | null;
 }
 
-
 export default function PlayWithOpponent() {
     const router = useRouter();
     const { socket } = useSocket();
@@ -27,6 +27,7 @@ export default function PlayWithOpponent() {
     const [opponent, setOpponent] = useState<Player | null>(null);
     const [playerName, setPlayerName] = useState("");
     const [gameStarted, setGameStarted] = useState(false);
+    const [showMatchIntro, setShowMatchIntro] = useState(false);
 
     useEffect(() => {
         const storedRoom = localStorage.getItem("currentRoom");
@@ -76,7 +77,11 @@ export default function PlayWithOpponent() {
             setTimeout(() => router.push("/"), 3000);
         });
 
-        setGameStarted(true);
+        setShowMatchIntro(true);
+        setTimeout(() => {
+            setShowMatchIntro(false);
+            setGameStarted(true);
+        }, 6000);
 
         return () => {
             socket.off("opponent_disconnected");
@@ -101,7 +106,13 @@ export default function PlayWithOpponent() {
             </button>
 
             <AnimatePresence mode="wait">
-                {opponent && gameStarted ? (
+                {showMatchIntro && opponent ? (
+                    <MatchedIntro
+                        name={playerName}
+                        opponent={opponent}
+                        playerSymbol={playerSymbol}
+                    />
+                ) : opponent && gameStarted ? (
                     <motion.div
                         key="game"
                         initial={{ opacity: 0 }}

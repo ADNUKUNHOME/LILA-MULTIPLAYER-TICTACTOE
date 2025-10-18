@@ -47,7 +47,7 @@ export default function Home() {
   // Initialize Player Identity
   useEffect(() => {
     let storedId = localStorage.getItem("playerId");
-    let storedName = localStorage.getItem("playerName");
+    const storedName = localStorage.getItem("playerName");
 
     if (!storedId) {
       storedId = nanoid();
@@ -149,6 +149,11 @@ export default function Home() {
       return;
     }
 
+    if (!socket) {
+      console.error("Socket not connected");
+      return;
+    }
+
     setIsLoading(true);
     setStatus("Finding opponent...");
     localStorage.setItem("playerName", playerName);
@@ -165,6 +170,11 @@ export default function Home() {
 
     if (!serverConnected) {
       toast.error("Not connected to server");
+      return;
+    }
+
+    if (!socket) {
+      console.error("Socket not connected");
       return;
     }
 
@@ -190,12 +200,22 @@ export default function Home() {
       return;
     }
 
+    if (!socket) {
+      console.error("Socket not connected");
+      return;
+    }
+
     setIsLoading(true);
     localStorage.setItem("playerName", playerName);
     socket.emit("join_room", { playerId, playerName, roomCode: roomCode.toUpperCase() });
   };
 
   const handleResume = () => {
+    if (!socket) {
+      console.error("Socket not connected");
+      return;
+    }
+
     socket.emit("resume_game", { playerId });
     router.push("/play/resume");
   };

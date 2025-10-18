@@ -15,7 +15,7 @@ const GameField = ({
     opponent: { name: string; symbol: "X" | "O" };
     playerSymbol: "X" | "O";
     room: string;
-    socket: SocketType;
+    socket: SocketType | null;
 }) => {
     return (
         <MotionDiv

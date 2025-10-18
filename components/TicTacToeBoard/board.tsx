@@ -13,7 +13,7 @@ import GetWinningLineStyle from "./winAnimations/winningLineStyle";
 import { MotionDiv } from "@/lib/motion";
 
 interface Props {
-    socket: ReturnType<typeof io>;
+    socket: ReturnType<typeof io> | null;
     playerSymbol: "X" | "O";
     room: string;
 }
@@ -56,6 +56,10 @@ const TicTacToeGrid = ({ socket, playerSymbol, room }: Props) => {
         }
 
         setTimeout(() => {
+            if (!socket) {
+                console.error("Socket not connected");
+                return;
+            }
             socket.emit("leave_room", { room });
             localStorage.removeItem("currentRoom");
             localStorage.removeItem("currentPlayers");
@@ -72,6 +76,11 @@ const TicTacToeGrid = ({ socket, playerSymbol, room }: Props) => {
         newBoard[index] = playerSymbol;
         setBoard(newBoard);
         setYourTurn(false);
+
+        if (!socket) {
+            console.error("Socket not connected");
+            return;
+        }
 
         socket.emit("playerMove", { room, index, symbol: playerSymbol });
     };
@@ -129,6 +138,11 @@ const TicTacToeGrid = ({ socket, playerSymbol, room }: Props) => {
             setYourTurn(false);
             handleGameOver(gameResult);
         };
+
+        if (!socket) {
+            console.error("Socket not connected");
+            return;
+        }
 
         socket.on("opponentMove", moveHandler);
         socket.on("game_over", gameOverHandler);
