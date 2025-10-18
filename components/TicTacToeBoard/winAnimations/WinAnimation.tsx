@@ -66,10 +66,11 @@ const WinAnimation = ({
         }
     };
 
+    const shouldShow = winner && showResult && winner === playerSymbol;
 
     return (
         <AnimatePresence>
-            {winner && showResult && winner === playerSymbol && (
+            {shouldShow && (
                 <MotionDiv
                     key="win-animation"
                     variants={winContainerVariants}

@@ -21,6 +21,15 @@ interface Props {
 interface MoveData {
     index: number;
     symbol: "X" | "O";
+    board?: Array<"X" | "O" | null>;
+    nextTurn?: string;
+    currentPlayer?: string;
+}
+
+interface GameOverData {
+    winner?: { playerId: string; symbol: "X" | "O" } | null;
+    board: Array<"X" | "O" | null>;
+    winningLine?: number[];
 }
 
 const TicTacToeGrid = ({ socket, playerSymbol, room }: Props) => {
@@ -30,91 +39,105 @@ const TicTacToeGrid = ({ socket, playerSymbol, room }: Props) => {
     const [winningLine, setWinningLine] = useState<number[] | null>(null);
     const [showResult, setShowResult] = useState(false);
     const router = useRouter();
+    const playerId = localStorage.getItem("playerId");
 
-    // Initialize turn based on symbol
     useEffect(() => {
-        setYourTurn(playerSymbol === "O");
+        setYourTurn(playerSymbol === "X");
     }, [playerSymbol]);
 
-    const checkWinner = (board: Array<"X" | "O" | null>) => {
-        const lines = [
-            [0, 1, 2],
-            [3, 4, 5],
-            [6, 7, 8],
-            [0, 3, 6],
-            [1, 4, 7],
-            [2, 5, 8],
-            [0, 4, 8],
-            [2, 4, 6],
-        ];
-
-        for (const [a, b, c] of lines) {
-            if (board[a] && board[a] === board[b] && board[a] === board[c]) {
-                setWinningLine([a, b, c]);
-                return board[a];
-            }
-        }
-
-        if (board.every((cell) => cell !== null)) return "draw";
-        return null;
-    };
 
     const handleGameOver = (result: "X" | "O" | "draw") => {
+        console.log("Handling game over with result:", result);
+
         if (result !== "draw") {
             setTimeout(() => setShowResult(true), 600);
         } else {
             setShowResult(true);
         }
 
-        setTimeout(() => router.push("/"), 4000);
+        setTimeout(() => {
+            socket.emit("leave_room", { room });
+            localStorage.removeItem("currentRoom");
+            localStorage.removeItem("currentPlayers");
+            localStorage.removeItem("yourSymbol");
+            localStorage.removeItem("activeGame");
+            router.push("/");
+        }, 4000);
     };
 
     const handleClick = (index: number) => {
         if (board[index] || !yourTurn || winner) return;
 
-        setBoard((prev) => {
-            const newBoard = [...prev];
-            newBoard[index] = playerSymbol;
-
-            const result = checkWinner(newBoard);
-            if (result) {
-                setWinner(result);
-                handleGameOver(result);
-            }
-
-            return newBoard;
-        });
-
+        const newBoard = [...board];
+        newBoard[index] = playerSymbol;
+        setBoard(newBoard);
         setYourTurn(false);
 
         socket.emit("playerMove", { room, index, symbol: playerSymbol });
     };
 
+
     useEffect(() => {
-        const moveHandler = ({ index, symbol }: MoveData) => {
-            setBoard((prev) => {
-                const newBoard = [...prev];
-                newBoard[index] = symbol;
+        const moveHandler = (data: MoveData) => {
+            if (winner) return;
 
-                const result = checkWinner(newBoard);
-                if (result) {
-                    setWinner(result);
-                    handleGameOver(result);
+            const { index, symbol, board: newBoard, nextTurn } = data;
+
+            if (newBoard) {
+                setBoard(newBoard);
+            } else {
+                setBoard(prev => {
+                    const updatedBoard = [...prev];
+                    updatedBoard[index] = symbol;
+                    return updatedBoard;
+                });
+            }
+
+            if (nextTurn && playerId) {
+                setYourTurn(nextTurn === playerId);
+            } else {
+                setYourTurn(prev => !prev);
+            }
+        };
+
+        const gameOverHandler = (data: GameOverData) => {
+            console.log("Game over received:", data);
+
+            setBoard(data.board);
+
+            if (data.winningLine) {
+                setWinningLine(data.winningLine);
+            }
+
+            let gameResult: "X" | "O" | "draw" | null = null;
+
+            if (data.winner) {
+                console.log("Winner data:", data.winner, "My playerId:", playerId);
+                if (data.winner.playerId === playerId) {
+                    gameResult = playerSymbol;
+                    console.log("I won!");
+                } else {
+                    gameResult = playerSymbol === "X" ? "O" : "X";
+                    console.log("I lost");
                 }
+            } else {
+                gameResult = "draw";
+                console.log("It's a draw");
+            }
 
-                return newBoard;
-            });
-
-            if (!winner) setYourTurn(true);
+            setWinner(gameResult);
+            setYourTurn(false);
+            handleGameOver(gameResult);
         };
 
         socket.on("opponentMove", moveHandler);
+        socket.on("game_over", gameOverHandler);
 
         return () => {
             socket.off("opponentMove", moveHandler);
+            socket.off("game_over", gameOverHandler);
         };
-    }, [socket, winner]);
-
+    }, [socket, playerSymbol, playerId, winner]);
 
     // Animation variants
     const iconVariants: Variants = {
@@ -127,18 +150,17 @@ const TicTacToeGrid = ({ socket, playerSymbol, room }: Props) => {
         visible: { scaleX: 1, transition: { duration: 0.5 } },
     };
 
-
     return (
         <div className="flex flex-col items-center justify-center min-h-[400px] w-[400px] relative overflow-hidden">
 
-            {/* Modern Win Animation */}
+            {/* Win Animation */}
             <WinAnimation
                 winner={winner}
                 playerSymbol={playerSymbol}
                 showResult={showResult}
             />
 
-            {/* Modern Lose Animation */}
+            {/* Lose Animation */}
             <LoseAnimation
                 show={!!winner && winner !== playerSymbol && winner !== "draw"}
                 board={board}
@@ -165,7 +187,7 @@ const TicTacToeGrid = ({ socket, playerSymbol, room }: Props) => {
                 {/* Winning line */}
                 {winningLine && (
                     <MotionDiv
-                        className="absolute bg-black"
+                        className="absolute bg-yellow-400 z-10"
                         style={GetWinningLineStyle({ winningLine }) as MotionStyle}
                         variants={winningLineVariants}
                         initial="hidden"
@@ -178,7 +200,8 @@ const TicTacToeGrid = ({ socket, playerSymbol, room }: Props) => {
                         <button
                             key={index}
                             onClick={() => handleClick(index)}
-                            className="flex items-center justify-center text-4xl font-bold"
+                            className="flex items-center justify-center text-4xl font-bold relative z-20"
+                            disabled={!yourTurn || !!winner || !!cell}
                         >
                             <AnimatePresence>
                                 {cell && (

@@ -1,0 +1,139 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { ChevronLeft } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
+import { Toaster, toast } from "react-hot-toast";
+import GameField from "@/components/playWithOpponent/gameField";
+import { useSocket } from "@/context/SocketContext";
+
+interface Player {
+    playerId: string;
+    name: string;
+    symbol: "X" | "O";
+}
+
+interface GameOverData {
+    winner?: Player | null;
+}
+
+
+export default function PlayWithOpponent() {
+    const router = useRouter();
+    const { socket } = useSocket();
+    const [room, setRoom] = useState("");
+    const [playerSymbol, setPlayerSymbol] = useState<"X" | "O">("O");
+    const [opponent, setOpponent] = useState<Player | null>(null);
+    const [playerName, setPlayerName] = useState("");
+    const [gameStarted, setGameStarted] = useState(false);
+
+    useEffect(() => {
+        const storedRoom = localStorage.getItem("currentRoom");
+        const storedPlayers = localStorage.getItem("currentPlayers");
+        const name = localStorage.getItem("playerName");
+        const id = localStorage.getItem("playerId");
+        const yourSymbol = localStorage.getItem("yourSymbol");
+
+        if (!storedRoom || !storedPlayers || !name || !id) {
+            router.push("/");
+            return;
+        }
+
+        setRoom(storedRoom);
+        setPlayerName(name);
+
+        const players: Player[] = JSON.parse(storedPlayers);
+        const me = players.find((p) => p.playerId === id);
+        const opp = players.find((p) => p.playerId !== id);
+
+        if (me) setPlayerSymbol(me.symbol);
+        if (opp) setOpponent(opp);
+
+        if (yourSymbol) {
+            setPlayerSymbol(yourSymbol as "X" | "O");
+        }
+
+        if (!socket) return;
+
+        socket.emit("join_room", { room: storedRoom, playerId: id });
+
+        socket.on("opponent_disconnected", () => {
+            toast.error("Opponent left the game.");
+            setTimeout(() => router.push("/"), 2000);
+        });
+
+        socket.on("game_over", (data: GameOverData) => {
+            if (data.winner) {
+                if (data.winner.playerId === id) {
+                    toast.success("You won!");
+                } else {
+                    toast.error("You lost!");
+                }
+            } else {
+                toast("It's a draw!");
+            }
+            setTimeout(() => router.push("/"), 3000);
+        });
+
+        setGameStarted(true);
+
+        return () => {
+            socket.off("opponent_disconnected");
+            socket.off("game_over");
+        };
+    }, [socket, router]);
+
+    return (
+        <div className="min-h-screen flex flex-col items-center justify-center bg-black text-white relative px-4">
+            <Toaster position="top-center" />
+            <button
+                onClick={() => {
+                    if (socket) {
+                        socket.emit("leave_queue");
+                    }
+                    router.push("/");
+                }}
+                className="absolute top-6 left-6 flex items-center gap-2 bg-gray-900 hover:bg-gray-800 px-4 py-2 rounded-xl"
+            >
+                <ChevronLeft size={20} />
+                <span className="font-medium">Exit</span>
+            </button>
+
+            <AnimatePresence mode="wait">
+                {opponent && gameStarted ? (
+                    <motion.div
+                        key="game"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.4 }}
+                        className="w-full max-w-lg"
+                    >
+                        <GameField
+                            room={room}
+                            name={playerName}
+                            playerSymbol={playerSymbol}
+                            opponent={opponent}
+                            socket={socket}
+                        />
+                    </motion.div>
+                ) : (
+                    <motion.div
+                        key="loading"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.4 }}
+                        className="text-center"
+                    >
+                        <h1 className="text-2xl font-semibold mb-4">
+                            Setting up the match...
+                        </h1>
+                        <p className="text-gray-400">Please wait a moment.</p>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </div>
+    );
+}

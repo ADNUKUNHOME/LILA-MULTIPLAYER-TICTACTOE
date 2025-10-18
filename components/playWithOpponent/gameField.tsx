@@ -9,13 +9,13 @@ const GameField = ({
     opponent,
     playerSymbol,
     room,
-    socketRef,
+    socket,
 }: {
     name: string;
     opponent: { name: string; symbol: "X" | "O" };
     playerSymbol: "X" | "O";
     room: string;
-    socketRef: React.MutableRefObject<SocketType | null>;
+    socket: SocketType;
 }) => {
     return (
         <MotionDiv
@@ -48,7 +48,7 @@ const GameField = ({
             </div>
 
             <TicTacToeGrid
-                socket={socketRef.current!}
+                socket={socket}
                 playerSymbol={playerSymbol}
                 room={room}
             />
