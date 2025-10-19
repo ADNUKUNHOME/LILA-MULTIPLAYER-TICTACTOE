@@ -10,12 +10,16 @@ const GameField = ({
     playerSymbol,
     room,
     socket,
+    yourTurn,
+    setYourTurn,
 }: {
     name: string;
     opponent: { name: string; symbol: "X" | "O" };
     playerSymbol: "X" | "O";
     room: string;
-    socket: SocketType | null;
+    socket: SocketType;
+    yourTurn: boolean;
+    setYourTurn: React.Dispatch<React.SetStateAction<boolean>>;
 }) => {
     return (
         <MotionDiv
@@ -51,6 +55,8 @@ const GameField = ({
                 socket={socket}
                 playerSymbol={playerSymbol}
                 room={room}
+                yourTurn={yourTurn}
+                setYourTurn={setYourTurn}
             />
         </MotionDiv>
     );

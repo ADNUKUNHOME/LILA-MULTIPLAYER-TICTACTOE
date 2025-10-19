@@ -8,17 +8,20 @@ const SERVER_URL = process.env.NEXT_PUBLIC_SOCKET_SERVER_URL!;
 type SocketType = ReturnType<typeof io>;
 
 interface SocketContextType {
-    socket: SocketType | null;
+    socket: SocketType;
     isConnected: boolean;
 }
 
+// Create a dummy socket instance that will be replaced
+const dummySocket = io(SERVER_URL, { autoConnect: false });
+
 const SocketContext = createContext<SocketContextType>({
-    socket: null,
+    socket: dummySocket,
     isConnected: false,
 });
 
 export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
-    const [socket, setSocket] = useState<SocketType | null>(null);
+    const [socket, setSocket] = useState<SocketType>(dummySocket);
     const [isConnected, setIsConnected] = useState(false);
 
     useEffect(() => {

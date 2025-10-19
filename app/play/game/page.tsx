@@ -8,6 +8,7 @@ import { Toaster, toast } from "react-hot-toast";
 import GameField from "@/components/playWithOpponent/gameField";
 import { useSocket } from "@/context/SocketContext";
 import MatchedIntro from "@/components/playWithOpponent/matchedIntro";
+import AnimatedButton from "@/components/common/animatedButton";
 
 interface Player {
     playerId: string;
@@ -28,6 +29,7 @@ export default function PlayWithOpponent() {
     const [playerName, setPlayerName] = useState("");
     const [gameStarted, setGameStarted] = useState(false);
     const [showMatchIntro, setShowMatchIntro] = useState(false);
+    const [yourTurn, setYourTurn] = useState(false);
 
     useEffect(() => {
         const storedRoom = localStorage.getItem("currentRoom");
@@ -35,6 +37,18 @@ export default function PlayWithOpponent() {
         const name = localStorage.getItem("playerName");
         const id = localStorage.getItem("playerId");
         const yourSymbol = localStorage.getItem("yourSymbol");
+        const currentTurn = localStorage.getItem("currentTurn");
+
+        console.log("STORED DATA:", {
+            currentTurn,
+            playerId: id,
+            comparison: currentTurn === id,
+            yourSymbol
+        });
+
+        if (currentTurn && id) {
+            setYourTurn(currentTurn === id);
+        }
 
         if (!storedRoom || !storedPlayers || !name || !id) {
             router.push("/");
@@ -57,7 +71,7 @@ export default function PlayWithOpponent() {
 
         if (!socket) return;
 
-        socket.emit("join_room", { room: storedRoom, playerId: id });
+        socket.emit("resume_game", { playerId: id });
 
         socket.on("opponent_disconnected", () => {
             toast.error("Opponent left the game.");
@@ -77,6 +91,11 @@ export default function PlayWithOpponent() {
             setTimeout(() => router.push("/"), 3000);
         });
 
+        socket.on("turn_update", (data: { currentTurn: string }) => {
+            const myId = localStorage.getItem("playerId");
+            setYourTurn(data.currentTurn === myId);
+        });
+
         setShowMatchIntro(true);
         setTimeout(() => {
             setShowMatchIntro(false);
@@ -86,24 +105,35 @@ export default function PlayWithOpponent() {
         return () => {
             socket.off("opponent_disconnected");
             socket.off("game_over");
+            socket.off("turn_update");
         };
     }, [socket, router]);
 
+    const handleLeaveGame = () => {
+        if (socket) {
+            socket.emit("leave_queue");
+        }
+
+        setTimeout(() => {
+            socket.emit("leave_room", { room });
+            localStorage.removeItem("currentRoom");
+            localStorage.removeItem("currentPlayers");
+            localStorage.removeItem("yourSymbol");
+            localStorage.removeItem("activeGame");
+            localStorage.removeItem("currentTurn");
+            router.push("/");
+        }, 4000);
+    }
+
     return (
-        <div className="min-h-screen flex flex-col items-center justify-center bg-black text-white relative px-4">
+        <div className="min-h-screen flex flex-col items-center justify-center bg-black text-white relative px-4 pt-8">
             <Toaster position="top-center" />
-            <button
-                onClick={() => {
-                    if (socket) {
-                        socket.emit("leave_queue");
-                    }
-                    router.push("/");
-                }}
-                className="absolute top-6 left-6 flex items-center gap-2 bg-gray-900 hover:bg-gray-800 px-4 py-2 rounded-xl"
-            >
-                <ChevronLeft size={20} />
-                <span className="font-medium">Exit</span>
-            </button>
+            <div className="fixed top-0 w-full">
+                <AnimatedButton
+                    buttonText="Leave the Game"
+                    handleButtonClick={handleLeaveGame}
+                />
+            </div>
 
             <AnimatePresence mode="wait">
                 {showMatchIntro && opponent ? (
@@ -127,6 +157,8 @@ export default function PlayWithOpponent() {
                             playerSymbol={playerSymbol}
                             opponent={opponent}
                             socket={socket}
+                            yourTurn={yourTurn}
+                            setYourTurn={setYourTurn}
                         />
                     </motion.div>
                 ) : (

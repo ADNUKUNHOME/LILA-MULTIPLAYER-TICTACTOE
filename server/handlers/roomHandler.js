@@ -33,6 +33,11 @@ export function roomHandler(io, socket, gameManager) {
         const updatedRoomData = gameManager.joinPrivateRoom(roomCode, socket);
         socket.emit("room_joined", { roomCode });
 
+        socket.to(roomData.room).emit("player_joined", {
+            playerId,
+            playerName
+        });
+
         if (updatedRoomData.players.length === 2) {
             const game = gameManager.createGame(
                 updatedRoomData.players[0].socket,
@@ -44,20 +49,27 @@ export function roomHandler(io, socket, gameManager) {
 
             console.log(`Private game started: ${game.room} between ${game.players[0].name} (${game.players[0].symbol}) and ${game.players[1].name} (${game.players[1].symbol})`);
 
-            // Notify both players
+            const currentTurnPlayerId = game.turn;
+
             updatedRoomData.players[0].socket.emit("match_found", {
                 room: game.room,
                 players: game.players,
                 yourSymbol: game.players[0].symbol,
-                currentTurn: game.turn
+                currentTurn: currentTurnPlayerId
             });
 
             socket.emit("match_found", {
                 room: game.room,
                 players: game.players,
                 yourSymbol: game.players[1].symbol,
-                currentTurn: game.turn
+                currentTurn: currentTurnPlayerId
             });
+
+            setTimeout(() => {
+                io.to(game.room).emit("turn_update", {
+                    currentTurn: currentTurnPlayerId
+                });
+            }, 100);
         }
     });
 }

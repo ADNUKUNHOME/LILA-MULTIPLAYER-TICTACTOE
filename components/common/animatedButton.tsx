@@ -8,11 +8,9 @@ import { useState } from "react";
 export default function AnimatedButton({
     buttonText,
     handleButtonClick,
-    name,
 }: {
     buttonText: string;
     handleButtonClick: () => void;
-    name?: string;
 }) {
     const controls = useAnimation();
     const [animating, setAnimating] = useState(false);
@@ -21,14 +19,6 @@ export default function AnimatedButton({
     return (
         <button
             onClick={async () => {
-                if (buttonText === "Continue") {
-                    if (!name || !name.trim() || name.trim().length < 3 || name.trim().length > 10) {
-                        // Invalid input, do not run animation
-                        handleButtonClick();
-                        return;
-                    }
-                }
-
                 if (animating) return;
                 setAnimating(true);
                 setTextColor("text-black");

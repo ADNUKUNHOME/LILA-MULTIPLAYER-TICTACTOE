@@ -56,7 +56,7 @@ export class GameManager {
             room,
             board: Array(9).fill(null),
             players,
-            turn: players[0].playerId,
+            turn: players.find(p => p.symbol === "X").playerId,
             status: "playing",
             createdAt: Date.now(),
             isPrivate

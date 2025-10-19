@@ -10,45 +10,49 @@ const GetWinningLineStyle = ({ winningLine }: { winningLine: number[] }) => {
             left: "0",
             width: "100%",
             height: "4px",
-            transformOrigin: "left center"
+            transformOrigin: "left center",
         };
     }
     // Vertical lines
-    else if (a >= 0 && a <= 2 && b >= 3 && b <= 5 && c >= 6 && c <= 8 && a % 3 === b % 3 && b % 3 === c % 3) {
+    else if (a % 3 === b % 3 && b % 3 === c % 3) {
         const col = a % 3;
         return {
             top: "0",
             left: `${col * 33.33 + 16.66}%`,
             width: "4px",
             height: "100%",
-            transformOrigin: "top center"
+            transformOrigin: "top center",
         };
     }
     // Diagonal from top-left to bottom-right (0,4,8)
     else if (winningLine.toString() === [0, 4, 8].toString()) {
         return {
-            top: "-2%",
-            left: "-2%",
-            width: "145%",
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            width: "140%",
             height: "4px",
-            transform: "rotate(45deg)",
-            transformOrigin: "top left",
-            position: "absolute"
+            backgroundColor: "yellow",
+            transform: "translate(-50%, -50%) rotate(45deg)",
+            transformOrigin: "center",
         };
     }
     // Diagonal from top-right to bottom-left (2,4,6)
     else if (winningLine.toString() === [2, 4, 6].toString()) {
         return {
-            top: "-2%",
-            right: "-2%",
-            width: "145%",
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            width: "140%",
             height: "4px",
-            transform: "rotate(-45deg)",
-            transformOrigin: "top right",
-            position: "absolute"
+            backgroundColor: "yellow",
+            transform: "translate(-50%, -50%) rotate(-45deg)",
+            transformOrigin: "center",
         };
     }
+
     return {};
 };
+
 
 export default GetWinningLineStyle;

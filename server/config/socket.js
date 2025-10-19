@@ -2,10 +2,9 @@ import { queueHandler } from "../handlers/queueHandler.js";
 import { roomHandler } from "../handlers/roomHandler.js";
 import { gameHandler } from "../handlers/gameHandler.js";
 import { resumeHandler } from "../handlers/resumeHandler.js";
-import { GameManager } from "../game/GameManager.js";
+import { GameManager } from "../game/gameManager.js";
 
 export function initializeSocket(io) {
-    // Initialize game manager
     const gameManager = new GameManager();
 
     io.on("connection", (socket) => {
@@ -39,7 +38,7 @@ function handleDisconnect(socket, gameManager) {
     gameManager.removeFromQueue(socket.id);
 
     // Handle active games
-    const game = gameManager.findGameByPlayerId(socket.id);
+    const game = gameManager.findGameByPlayerId(socket.data?.playerId || socket.id);
     if (game) {
         const opponent = game.players.find((p) => p.id !== socket.id);
         if (opponent) {

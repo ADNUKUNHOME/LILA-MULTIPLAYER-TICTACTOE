@@ -31,6 +31,7 @@ interface MatchFoundData {
   room: string;
   players: { id: string; playerId: string; name: string; symbol: string }[];
   yourSymbol: string;
+  currentTurn: string;
 }
 
 export default function Home() {
@@ -60,7 +61,6 @@ export default function Home() {
 
     setPlayerId(storedId);
 
-    // Check for active game
     const gameState = localStorage.getItem("activeGame");
     setActiveGame(!!gameState);
   }, []);
@@ -103,6 +103,7 @@ export default function Home() {
       localStorage.setItem("currentPlayers", JSON.stringify(data.players));
       localStorage.setItem("yourSymbol", data.yourSymbol);
       localStorage.setItem("activeGame", "true");
+      localStorage.setItem("currentTurn", data.currentTurn);
       toast.success("Opponent found! Starting game...");
       setTimeout(() => router.push("/play/game"), 500);
     };
@@ -113,7 +114,7 @@ export default function Home() {
     };
 
     const handleWaiting = (data: { message: string; queuePosition: number }): void => {
-      setStatus(`${data.message} (Position: ${data.queuePosition})`);
+      setStatus(`${data.message}`);
     };
 
     // Add all event listeners
@@ -149,11 +150,6 @@ export default function Home() {
       return;
     }
 
-    if (!socket) {
-      console.error("Socket not connected");
-      return;
-    }
-
     setIsLoading(true);
     setStatus("Finding opponent...");
     localStorage.setItem("playerName", playerName);
@@ -170,11 +166,6 @@ export default function Home() {
 
     if (!serverConnected) {
       toast.error("Not connected to server");
-      return;
-    }
-
-    if (!socket) {
-      console.error("Socket not connected");
       return;
     }
 
@@ -200,22 +191,12 @@ export default function Home() {
       return;
     }
 
-    if (!socket) {
-      console.error("Socket not connected");
-      return;
-    }
-
     setIsLoading(true);
     localStorage.setItem("playerName", playerName);
     socket.emit("join_room", { playerId, playerName, roomCode: roomCode.toUpperCase() });
   };
 
   const handleResume = () => {
-    if (!socket) {
-      console.error("Socket not connected");
-      return;
-    }
-
     socket.emit("resume_game", { playerId });
     router.push("/play/resume");
   };

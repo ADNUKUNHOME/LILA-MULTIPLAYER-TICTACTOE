@@ -20,7 +20,6 @@ export function queueHandler(io, socket, gameManager) {
 
             console.log(`Game started: ${game.room} between ${game.players[0].name} (${game.players[0].symbol}) and ${game.players[1].name} (${game.players[1].symbol})`);
 
-            // Notify both players
             socket.emit("match_found", {
                 room: game.room,
                 players: game.players,
@@ -32,6 +31,10 @@ export function queueHandler(io, socket, gameManager) {
                 room: game.room,
                 players: game.players,
                 yourSymbol: game.players[1].symbol,
+                currentTurn: game.turn
+            });
+
+            io.to(game.room).emit("turn_update", {
                 currentTurn: game.turn
             });
 
