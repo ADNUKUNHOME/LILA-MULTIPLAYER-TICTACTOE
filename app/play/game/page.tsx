@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ChevronLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Toaster, toast } from "react-hot-toast";
@@ -46,8 +45,16 @@ export default function PlayWithOpponent() {
             yourSymbol
         });
 
+        // Fix: Better turn initialization
         if (currentTurn && id) {
             setYourTurn(currentTurn === id);
+        } else {
+            // Fallback: if no currentTurn stored, X goes first
+            const players = storedPlayers ? JSON.parse(storedPlayers) : [];
+            const me = players.find((p: Player) => p.playerId === id);
+            if (me) {
+                setYourTurn(me.symbol === "X");
+            }
         }
 
         if (!storedRoom || !storedPlayers || !name || !id) {
@@ -94,6 +101,8 @@ export default function PlayWithOpponent() {
         socket.on("turn_update", (data: { currentTurn: string }) => {
             const myId = localStorage.getItem("playerId");
             setYourTurn(data.currentTurn === myId);
+            // Update localStorage with new turn
+            localStorage.setItem("currentTurn", data.currentTurn);
         });
 
         setShowMatchIntro(true);

@@ -34,7 +34,8 @@
     "**/*.tsx",
     ".next/types/**/*.ts",
     "server/server.js",
-    "server/config/socket.js"
+    "server/config/socket.js",
+    "server/config/dbConnect.js"
   ],
   "exclude": [
     "node_modules"

@@ -10,6 +10,7 @@ interface MatchFoundData {
     room: string;
     players: { id: string; playerId: string; name: string; symbol: string }[];
     yourSymbol: string;
+    currentTurn: string;
 }
 
 export default function SearchOpponent() {
@@ -37,6 +38,7 @@ export default function SearchOpponent() {
             localStorage.setItem("currentPlayers", JSON.stringify(data.players));
             localStorage.setItem("yourSymbol", data.yourSymbol);
             localStorage.setItem("activeGame", "true");
+            localStorage.setItem("currentTurn", data.currentTurn);
             toast.success("Opponent found!");
             setTimeout(() => router.push("/play/game"), 200);
         };

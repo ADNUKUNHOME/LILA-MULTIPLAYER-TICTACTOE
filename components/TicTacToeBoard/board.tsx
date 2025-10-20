@@ -34,6 +34,11 @@ interface GameOverData {
     winningLine?: number[];
 }
 
+interface Player {
+    playerId: string;
+    name: string;
+}
+
 const TicTacToeGrid = ({ socket, playerSymbol, room, yourTurn, setYourTurn }: Props) => {
     const [board, setBoard] = useState<Array<"X" | "O" | null>>(Array(9).fill(null));
     const [winner, setWinner] = useState<"X" | "O" | "draw" | null>(null);
@@ -42,10 +47,10 @@ const TicTacToeGrid = ({ socket, playerSymbol, room, yourTurn, setYourTurn }: Pr
     const router = useRouter();
     const playerId = localStorage.getItem("playerId");
 
-
     const handleGameOver = (result: "X" | "O" | "draw") => {
         console.log("Handling game over with result:", result);
 
+        // Show appropriate animation
         if (result !== "draw") {
             setTimeout(() => setShowResult(true), 600);
         } else {
@@ -59,7 +64,7 @@ const TicTacToeGrid = ({ socket, playerSymbol, room, yourTurn, setYourTurn }: Pr
             localStorage.removeItem("yourSymbol");
             localStorage.removeItem("activeGame");
             localStorage.removeItem("currentTurn");
-            router.push("/");
+            router.push("/leaderboard");
         }, 4000);
     };
 
@@ -73,7 +78,6 @@ const TicTacToeGrid = ({ socket, playerSymbol, room, yourTurn, setYourTurn }: Pr
 
         socket.emit("playerMove", { room, index, symbol: playerSymbol });
     };
-
 
     useEffect(() => {
         const moveHandler = (data: MoveData) => {
@@ -93,8 +97,15 @@ const TicTacToeGrid = ({ socket, playerSymbol, room, yourTurn, setYourTurn }: Pr
 
             if (nextTurn && playerId) {
                 setYourTurn(nextTurn === playerId);
+                localStorage.setItem("currentTurn", nextTurn);
             } else {
-                setYourTurn(prev => !prev);
+                const players = JSON.parse(localStorage.getItem("currentPlayers") || "[]");
+                const currentTurn = localStorage.getItem("currentTurn");
+                const nextPlayer = players.find((p: Player) => p.playerId !== currentTurn);
+                if (nextPlayer) {
+                    setYourTurn(nextPlayer.playerId === playerId);
+                    localStorage.setItem("currentTurn", nextPlayer.playerId);
+                }
             }
         };
 
@@ -125,6 +136,7 @@ const TicTacToeGrid = ({ socket, playerSymbol, room, yourTurn, setYourTurn }: Pr
 
             setWinner(gameResult);
             setYourTurn(false);
+            localStorage.removeItem("currentTurn");
             handleGameOver(gameResult);
         };
 

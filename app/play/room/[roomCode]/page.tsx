@@ -20,6 +20,7 @@ interface MatchFoundData {
         symbol: string;
     }>;
     yourSymbol: string;
+    currentTurn: string;
 }
 
 
@@ -55,6 +56,7 @@ export default function RoomPage() {
             localStorage.setItem("currentPlayers", JSON.stringify(data.players));
             localStorage.setItem("yourSymbol", data.yourSymbol);
             localStorage.setItem("activeGame", "true");
+            localStorage.setItem("currentTurn", data.currentTurn);
             toast.success("Game starting!");
             setTimeout(() => router.push("/play/game"), 1000);
         };

@@ -1,5 +1,6 @@
 import { v4 as uuidv4 } from "uuid";
-import { checkWinner, getWinningLine } from "./GameLogic.js";
+import { checkWinner, getWinningLine } from "./gameLogic.js";
+import { GameService } from "../services/gameService.js";
 
 export class GameManager {
     constructor() {
@@ -119,7 +120,6 @@ export class GameManager {
         return null;
     }
 
-    // Game logic
     makeMove(room, playerId, index, symbol) {
         const game = this.activeGames.get(room);
         if (!game || game.status !== "playing") {
@@ -134,23 +134,53 @@ export class GameManager {
             return { error: "Cell already taken" };
         }
 
-        // Update board
         game.board[index] = symbol;
+        game.lastMoveAt = Date.now();
 
         const winner = checkWinner(game.board);
 
         if (winner === "draw") {
             game.status = "draw";
+            game.completedAt = Date.now();
+            this.saveGameCompletion(game, null);
             return { game, winner: null, isDraw: true };
         } else if (winner) {
             game.status = "ended";
+            game.completedAt = Date.now();
             const winningPlayer = game.players.find(p => p.symbol === winner);
+            this.saveGameCompletion(game, winningPlayer);
             return { game, winner: winningPlayer, isDraw: false, winningLine: getWinningLine(game.board) };
         } else {
-            // Switch turns
             const nextPlayer = game.players.find((p) => p.playerId !== playerId);
             game.turn = nextPlayer.playerId;
             return { game, nextTurn: game.turn };
+        }
+    }
+
+
+    async saveGameCompletion(game, winner) {
+        try {
+            let result = 'draw';
+            if (winner) {
+                result = winner.playerId === game.players[0].playerId ? 'win' : 'loss';
+            }
+            const gameData = {
+                player1: game.players[0].playerId,
+                player2: game.players[1].playerId,
+                player1Name: game.players[0].name,
+                player2Name: game.players[1].name,
+                winner: winner ? winner.playerId : null,
+                result: result,
+                type: game.isPrivate ? "private" : "quick",
+                winningSymbol: winner ? winner.symbol : undefined,
+                duration: game.completedAt - game.createdAt
+            };
+
+            await GameService.saveGameResult(gameData);
+
+            console.log(`Game ${game.id} completed and saved to database`);
+        } catch (error) {
+            console.error('Failed to save game completion:', error);
         }
     }
 
