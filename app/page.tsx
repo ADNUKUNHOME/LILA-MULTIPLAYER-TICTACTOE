@@ -138,6 +138,18 @@ export default function Home() {
     };
   }, [socket, router]);
 
+  const handleRemoveActiveGames = () => {
+    const room = localStorage.getItem("currentRoom");
+    socket.emit("leave_room", { room });
+
+    localStorage.removeItem("currentRoom");
+    localStorage.removeItem("currentPlayers");
+    localStorage.removeItem("yourSymbol");
+    localStorage.removeItem("activeGame");
+    localStorage.removeItem("currentTurn");
+    toast.error("Opponent left the game!");
+  }
+
 
   const handleQuickMatch = () => {
     if (!playerName.trim()) {
@@ -196,10 +208,10 @@ export default function Home() {
     socket.emit("join_room", { playerId, playerName, roomCode: roomCode.toUpperCase() });
   };
 
-  const handleResume = () => {
-    socket.emit("resume_game", { playerId });
-    router.push("/play/resume");
-  };
+  // const handleResume = () => {
+  //   socket.emit("resume_game", { playerId });
+  //   router.push("/play/resume");
+  // };
 
   const features = [
     {
@@ -385,7 +397,7 @@ export default function Home() {
                 className="text-center mt-6"
               >
                 <button
-                  onClick={handleResume}
+                  onClick={handleRemoveActiveGames}
                   className="inline-flex items-center gap-2 bg-white/10 hover:bg-white/20 px-6 py-3 rounded-xl font-semibold transition-all duration-300 border border-white/10 hover:border-white/20"
                 >
                   <Play className="w-4 h-4" />
