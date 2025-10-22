@@ -356,7 +356,8 @@ Note: This is my first project implementing Socket.IO for real-time multiplayer 
 ---
 
 ## Future Enhancements:
-- Add reconnect and resume game features (in progress)
+- Add a feature to restart the game automatically with the same opponent instead of redirecting to the leaderboard, and    redirect to the leaderboard only when a player clicks the “Leave Match” button  (in progress)
+- Add reconnect and resume game features
 - Implement AI opponent mode for solo play
 - Integrate Nakama for advanced matchmaking
 - Add player authentication and session persistence
