@@ -237,7 +237,7 @@ export default function Home() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white">
+    <div className="min-h-screen bg-black">
       {/* Background Effects */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute -inset-10 opacity-20">
@@ -425,7 +425,7 @@ export default function Home() {
             <div className="text-sm text-gray-400 space-y-2">
               <p>Player ID: {playerId}</p>
               <p className="text-xs opacity-70">
-                © {new Date().getFullYear()} Tic Tac Toe • Built for Lila Backend Engineering Test
+                © {new Date().getFullYear()} Tic Tac Toe
               </p>
               <p className="text-xs opacity-50">
                 Crafted with ♥ by MUHAMMAD ADNAN K

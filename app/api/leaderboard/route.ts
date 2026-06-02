@@ -24,12 +24,26 @@ export async function GET(): Promise<NextResponse> {
                     totalGames: [
                         {
                             $project: {
-                                players: ["$player1", "$player2"],
-                                winner: 1
+                                players: [
+                                    {
+                                        playerId: "$player1",
+                                        playerName: "$player1Name"
+                                    },
+                                    {
+                                        playerId: "$player2",
+                                        playerName: "$player2Name"
+                                    }
+                                ]
                             }
                         },
                         { $unwind: "$players" },
-                        { $group: { _id: "$players", totalGames: { $sum: 1 } } }
+                        {
+                            $group: {
+                                _id: "$players.playerId",
+                                totalGames: { $sum: 1 },
+                                playerName: { $first: "$players.playerName" }
+                            }
+                        }
                     ]
                 }
             },
@@ -41,6 +55,7 @@ export async function GET(): Promise<NextResponse> {
                             as: "player",
                             in: {
                                 _id: "$$player._id",
+                                playerName: "$$player.playerName",
                                 wins: {
                                     $ifNull: [
                                         {
